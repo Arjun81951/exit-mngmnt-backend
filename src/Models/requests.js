@@ -1,11 +1,6 @@
 const mongoose = require('mongoose');
 
 const exitRequestSchema = new mongoose.Schema({
-    // userId: {
-    //     type: mongoose.Schema.Types.ObjectId,
-    //     required: true,
-    //     ref: 'User'
-    // },
     name:{
         type: String,
         required: true
@@ -25,8 +20,8 @@ const exitRequestSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'Approved', 'Rejected','Expired'],
-        default: 'Pending'
+        enum: ['tea','hod', 'Approved', 'Rejected','Expired'],
+        default: 'tea'
     },
     time:{
         type:String,

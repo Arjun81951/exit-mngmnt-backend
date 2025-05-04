@@ -9,7 +9,8 @@ const studentSchema = new mongoose.Schema({
     className: { type: String, required: true },    
     password: { type: String, required: true },
     exit_request:{type:String},
-    fees:{type:String}
+    fees:{type:String},
+    feeStat:{type:String}
 });
 
 module.exports = mongoose.model('Student', studentSchema);

@@ -35,12 +35,11 @@ exports.viewNoticesByDepartment = async (req, res) => {
 
         // Find notices by department
         const notices = await Notice.find({department:dep});
-        console.log("notices",notices);
+        console.log("noticeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeees",notices);
 
         if (notices.length === 0) {
             return res.status(404).json({ message: 'No notices found for this department' });
         }
-        console.log("notices",notices);
         
         res.status(200).json({ notices });
     } catch (error) {

@@ -3,6 +3,7 @@ const QRCode = require('qrcode');
 const HOD = require('../Models/hod'); // Assuming there is a HOD model
 const Security = require('../Models/security'); // Assuming there is a Security model
 const ExitRequest = require('../Models/requests')
+const Teacher = require('../Models/teacher'); // Assuming there is a Teacher model
 const jwt = require('jsonwebtoken'); // Add JWT library
 
 // Add Student by HOD
@@ -121,6 +122,16 @@ exports.Login = async (req, res) => {
             return res.status(200).json({ success: true, user, role: 'sec', token });
         }
 
+        //check if the user is a teacher
+        user = await Teacher.findOne({ email });
+        if (user) {
+            if (user.password !== password) {
+                return res.status(401).json({ error: 'Invalid password' });
+            }
+            const token = jwt.sign({ email: user.email, role: 'teacher', department: user.department }, 'your_jwt_secret', { expiresIn: '1h' });
+            return res.status(200).json({ success: true, user, role: 'teacher', token });
+        }
+
         return res.status(404).json({ error: 'User not found' });
     } catch (error) {
         res.status(500).json({ error: 'Server Error' });
@@ -149,7 +160,7 @@ exports.listAcceptedStudents = async (req, res) => {
         const { dep } = req.params;
         console.log("dep",dep);
         // Find all students with status 'accepted'
-        const students = await Student.find({ status: 'accepted', department: dep });
+        const students = await Student.find({ status: 'accepted', department: dep }).sort({feeStat:1});
 
         res.json({ success: true, students });
     } catch (error) {
@@ -202,23 +213,29 @@ exports.getExitRequestsByDepartment = async (req, res) => {
         console.log("department",dep);
         
         // Find all students with exit requests
-        const requests = await ExitRequest.find({ status:'Pending',department:dep });
+        const requests = await ExitRequest.find({ status:'tea',department:dep });
 
         console.log("students",requests);
-        // Group by department
-        // const requestsByDepartment = students.reduce((acc, student) => {
-        //     const { department, exit_request } = student;
-        //     if (!acc[department]) {
-        //         acc[department] = [];
-        //     }
-        //     acc[department].push({
-        //         email: student.email,
-        //         name: student.name,
-        //         reason: exit_request.reason,
-        //         exit_time: exit_request.exit_time
-        //     });
-        //     return acc;
-        // }, {});
+      
+
+        res.status(200).json({ success: true, requests });
+    } catch (error) {
+        console.log("error",error);
+        res.status(500).json({ error: 'Server Error' });
+    }
+};
+exports.getExitRequestsByDepartmentHod = async (req, res) => {
+    try {
+        console.log("getExitRequestsByDepartment");
+        
+        const {dep} = req.params
+        console.log("department",dep);
+        
+        // Find all students with exit requests
+        const requests = await ExitRequest.find({ status:'hod',department:dep });
+
+        console.log("students",requests);
+      
 
         res.status(200).json({ success: true, requests });
     } catch (error) {
@@ -238,7 +255,11 @@ exports.handleExitRequest = async (req, res) => {
         // Handle the exit request based on action
         if (action === 'Approve') {
             request.status = 'Approved';
-        } else if (action === 'Reject') {
+        } 
+        else if (action === 'hod') {
+            request.status = 'hod';
+        }
+        else if (action === 'Reject') {
             request.status = 'Rejected';
         } else {
             return res.status(400).json({ error: 'Invalid action' });
@@ -346,10 +367,13 @@ exports.updateExitRequest = async (req, res) => {
 };
 
 exports.updateFees = async(req,res)=>{
-    const {email,fees} = req.body;
+    const {email,fees,feeStat} = req.body;
     try {
         const student  = await Student.findOne({email})
-        if(student) student.fees =fees;
+        if(student) {
+            student.fees = fees;
+            student.feeStat = feeStat;
+        }
 
         await student.save()
 
@@ -392,3 +416,86 @@ exports.getRequestById=async(req,res)=>{
     }catch(error){res.status(500).json ({error:'server eror'})
 }
 }
+
+exports.updateFeesAll = async (req,res)=>{
+    const {dep,fees,feeStat} = req.body;
+    try {
+        const students  = await Student.updateMany({department:dep,status:'accepted'},{fees,feeStat})
+        console.log("students",students);
+        res.json({ success: true, students });
+    } catch (error) {
+        console.log("error", error);
+        res.status(500).json({ error: 'Server Error' });
+    }
+}
+exports.viewByfeeStat = async (req,res)=>{
+    const {feeStat} = req.params;
+    try {
+        const students  = await Student.find({feeStat})
+        console.log("students",students);
+        
+        res.json({ success: true, students });
+    } catch (error) {
+        console.log("error", error);
+        res.status(500).json({ error: 'Server Error' });
+    }
+}
+exports.getExitReportDaily = async (req, res) => {
+    try {
+        console.log("getExitReportDaily");
+
+        const { dep } = req.params;
+        console.log("department", dep);
+
+        // Get the current date
+        const currentDate = new Date();
+        const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0)); // Start of the day
+        const endOfDay = new Date(currentDate.setHours(23, 59, 59, 999)); // End of the day
+
+        // Find all requests with status 'expired', matching department, and created on the current date
+
+
+        const today = new Date()
+        console.log("today",today);
+        
+        const requests = await ExitRequest.find({
+            status: 'Expired',
+            department: dep,
+            createdAt: { $gte: startOfDay, $lte: endOfDay }
+        });
+
+        console.log("requestsssssssssss", requests);
+
+        res.status(200).json({ success: true, requests });
+    } catch (error) {
+        console.log("error", error);
+        res.status(500).json({ error: 'Server Error' });
+    }
+};
+exports.getExitReportLastMonth = async (req, res) => {
+    try {
+        console.log("getExitReportLastMonth");
+
+        const { dep } = req.params;
+        console.log("department", dep);
+
+        // Get the current date and calculate the start and end of the last month
+        const currentDate = new Date();
+        const startOfLastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+        const endOfLastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+
+        // Find all requests with status 'expired', matching department, and created in the last month
+        const requests = await ExitRequest.find({
+            status: 'expired',
+            department: dep,
+            createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth }
+        });
+
+        console.log("requests", requests);
+
+        res.status(200).json({ success: true, requests });
+    } catch (error) {
+        console.log("error", error);
+        res.status(500).json({ error: 'Server Error' });
+    }
+};

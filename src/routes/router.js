@@ -1,12 +1,13 @@
 const express = require('express');
-const {registerStudent, hodAcceptOrRejectStudent, Login, viewStudent, getRequestById} = require('../controller/studentController');
+const {registerStudent, hodAcceptOrRejectStudent, Login, viewStudent, getRequestById, updateFeesAll,getExitRequestsByDepartmentHod} = require('../controller/studentController');
 const { viewNoticesByDepartment,createNotice,viewAllNotices,getMessages,sendMessageToStudent } = require( '../controller/hodController');
 const {acceptRegisteredStudents} = require('../controller/studentController')
 const {addNewHOD} = require('../controller/studentController');
 const {addNewSecurity} = require('../controller/studentController');
 const {requestExitFromCollege,updateExitRequest} = require('../controller/studentController');
-const{listUnapprovedStudents,listAcceptedStudents,updateFees,getExitRequestsByDepartment,handleExitRequest,viewMostRecentExitRequestByStudent} = require('../controller/studentController');
+const{listUnapprovedStudents,listAcceptedStudents,updateFees,getExitRequestsByDepartment,handleExitRequest,viewMostRecentExitRequestByStudent,getExitReportDaily,getExitReportLastMonth} = require('../controller/studentController');
 const{enterVehicleDetails,getLatestVehicles} = require('../controller/securityController')
+const {createTeacher} = require('../controller/teacherControler')
 
 const router = express.Router();
 
@@ -23,12 +24,14 @@ router.get('/student/accept/:dep',(req,res)=> listAcceptedStudents(req,res));
 router.get('/student/unapprovedlist/:dep', (req, res)=> listUnapprovedStudents(req,res));
 router.get('/student/accept',(req,res)=> acceptRegisteredStudents(req,res));
 router.get('/student/requests/:dep', (req,res)=> getExitRequestsByDepartment(req,res));
+router.get('/hod/requests/:dep', (req,res)=> getExitRequestsByDepartmentHod(req,res));
 router.post('/request/accept', handleExitRequest);
 router.get('/student/request/:email', (req,res)=> viewMostRecentExitRequestByStudent(req,res));
 router.post('/security/request',updateExitRequest);
 router.post('/message/sent',sendMessageToStudent)
 router.get('/message/:email',getMessages)
 router.post('/student/fee',updateFees)
+router.post('/student/fees/all',(req,res)=>updateFeesAll(req,res))
 router.get('/student/view/:email', (req,res)=>viewStudent(req,res));
 
 
@@ -50,8 +53,10 @@ router.get('/request/:id',(req,res)=>getRequestById(req,res))
 
 
 
-//Security Router
+router.post('/teacher/add', (req,res)=> createTeacher(req,res));
 
+router.get('/request/report/day/:dep', (req,res)=> getExitReportDaily(req,res));
+router.get('/request/report/month/:dep', (req,res)=> getExitReportLastMonth(req,res));
 
 
 module.exports = router;
